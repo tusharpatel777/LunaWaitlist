@@ -14,7 +14,15 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-export default function DailySignupsChart({ data = [] }) {
+export default function DailySignupsChart({ data = [], range = '30d' }) {
+  const days = range === '7d' ? 7 : 30
+  const dateRange = (() => {
+    const end   = new Date()
+    const start = new Date(end - (days - 1) * 86_400_000)
+    const fmt   = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return `${fmt(start)} – ${fmt(end)}`
+  })()
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -22,9 +30,12 @@ export default function DailySignupsChart({ data = [] }) {
       transition={{ delay: 0.1 }}
       className="glass rounded-2xl border p-5"
     >
-      <div className="mb-4">
-        <h3 className="text-white font-semibold text-sm">Daily Signups</h3>
-        <p className="text-white/35 text-xs mt-0.5">Last 30 days</p>
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h3 className="text-white font-semibold text-sm">Daily Signups</h3>
+          <p className="text-white/35 text-xs mt-0.5">{dateRange}</p>
+        </div>
+        <span className="text-white/20 text-xs">{days}d</span>
       </div>
 
       <div className="h-60">
@@ -42,7 +53,7 @@ export default function DailySignupsChart({ data = [] }) {
               stroke="transparent"
               tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 9 }}
               tickLine={false}
-              interval={4}
+              interval={days === 7 ? 0 : 4}
             />
             <YAxis
               stroke="transparent"

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   RiBarChartLine, RiGroupLine, RiCalendarLine,
-  RiLineChartLine,
 } from 'react-icons/ri'
 import { useWaitlist } from '../context/WaitlistContext'
 import StatCard from '../components/StatCard'
@@ -65,8 +64,8 @@ export default function Analytics() {
   if (loading) {
     return (
       <div className="space-y-5">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <StatCardSkeleton key={i} />)}
         </div>
         <ChartSkeleton height="h-80" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -102,25 +101,17 @@ export default function Analytics() {
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <StatCard title="Total Signups"  value={stats.totalUsers} icon={RiGroupLine}      variant="indigo"  delay={0}    />
         <StatCard title="This Month"     value={stats.monthUsers} icon={RiCalendarLine}   variant="cyan"    delay={0.05} />
         <StatCard title="This Week"      value={stats.weekUsers}  icon={RiBarChartLine}   variant="purple"  delay={0.1}  />
-        <StatCard
-          title="Growth"
-          value={stats.growthRate}
-          icon={RiLineChartLine}
-          variant="emerald"
-          suffix="%"
-          decimals={1}
-          trend={stats.growthRate}
-          trendLabel="week-over-week"
-          delay={0.15}
-        />
       </div>
 
       {/* Daily chart */}
-      <DailySignupsChart data={stats.dailyData} />
+      <DailySignupsChart
+        data={range === '7d' ? stats.dailyData.slice(-7) : stats.dailyData}
+        range={range}
+      />
 
       {/* Bottom row — only render cards that have data */}
       {(stats.countryData.length > 0 || stats.deviceData.length > 0 || stats.sourceData.length > 0) && (
