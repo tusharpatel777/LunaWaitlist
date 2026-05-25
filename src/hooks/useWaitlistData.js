@@ -11,11 +11,11 @@ const TOAST_STYLE = {
 }
 
 function computeStats(data) {
-  const now       = Date.now()
+  const now        = Date.now()
   const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime()
-  const weekMs    = 7  * 86_400_000
-  const twoWkMs   = 14 * 86_400_000
-  const monthMs   = 30 * 86_400_000
+  const weekMs     = 7  * 86_400_000
+  const twoWkMs    = 14 * 86_400_000
+  const monthMs    = 30 * 86_400_000
 
   const todayUsers = data.filter(u => new Date(u.createdAt).getTime() >= todayStart).length
   const weekUsers  = data.filter(u => now - new Date(u.createdAt).getTime() <= weekMs).length
@@ -29,13 +29,13 @@ function computeStats(data) {
     ? parseFloat(((weekUsers - prevWeek) / prevWeek * 100).toFixed(1))
     : weekUsers > 0 ? 100 : 0
 
-  // Country distribution
+  // Country distribution — keep all, slice to top 8 for charts
   const cMap = {}
   data.forEach(u => { if (u.country) cMap[u.country] = (cMap[u.country] || 0) + 1 })
-  const countryData = Object.entries(cMap)
+  const allCountryData = Object.entries(cMap)
     .map(([country, count]) => ({ country, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 8)
+  const countryData = allCountryData.slice(0, 8)
 
   // Device distribution
   const dMap = {}
@@ -48,6 +48,9 @@ function computeStats(data) {
   const sourceData = Object.entries(sMap)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
+
+  // Unique sources list for filter dropdowns
+  const sources = sourceData.map(s => s.name)
 
   // Hourly data – last 24 h
   const hourlyMap = {}
@@ -64,20 +67,73 @@ function computeStats(data) {
   })
   const hourlyData = Object.entries(hourlyMap).map(([time, users]) => ({ time, users }))
 
-  // Daily data – last 30 days
+  // All-time daily data (ISO key for reliable sorting, no gap-fill)
+  const isoDateMap = {}
+  data.forEach(u => {
+    const d   = new Date(u.createdAt)
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    isoDateMap[iso] = (isoDateMap[iso] || 0) + 1
+  })
+  const allDailyData = Object.entries(isoDateMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([isoDate, users]) => ({
+      isoDate,
+      date: new Date(isoDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      users,
+    }))
+
+  // Monthly data — for "All Time" chart view
+  const isoMonthMap = {}
+  data.forEach(u => {
+    const d   = new Date(u.createdAt)
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+    if (!isoMonthMap[key]) {
+      isoMonthMap[key] = {
+        date:  d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        users: 0,
+      }
+    }
+    isoMonthMap[key].users++
+  })
+  const monthlyData = Object.entries(isoMonthMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([, v]) => v)
+
+  // Daily data – last 30 days with gap-fill (zero days preserved for short-range charts)
   const dailyMap = {}
   for (let i = 29; i >= 0; i--) {
-    const d = new Date(now - i * 86_400_000)
-    dailyMap[d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })] = 0
+    const d   = new Date(now - i * 86_400_000)
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    dailyMap[iso] = 0
   }
   data.forEach(u => {
-    const age = now - new Date(u.createdAt).getTime()
-    if (age <= 30 * 86_400_000) {
-      const key = new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      if (key in dailyMap) dailyMap[key]++
-    }
+    const d   = new Date(u.createdAt)
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    if (iso in dailyMap) dailyMap[iso]++
   })
-  const dailyData = Object.entries(dailyMap).map(([date, users]) => ({ date, users }))
+  const dailyData = Object.entries(dailyMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([isoDate, users]) => ({
+      isoDate,
+      date: new Date(isoDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      users,
+    }))
+
+  // Referral stats
+  const refMap = {}
+  data.forEach(u => {
+    if (u.referredBy) refMap[u.referredBy] = (refMap[u.referredBy] || 0) + 1
+  })
+  const totalReferred = data.filter(u => u.referredBy).length
+  const referralRate  = data.length > 0 ? Math.round(totalReferred / data.length * 100) : 0
+  const topReferrers  = Object.entries(refMap)
+    .map(([code, count]) => {
+      const user = data.find(u => u.referralCode === code)
+      return { code, email: user?.email || '—', count }
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+  const hasReferralData = data.some(u => u.referralCode)
 
   return {
     totalUsers: data.length,
@@ -86,19 +142,28 @@ function computeStats(data) {
     monthUsers,
     growthRate,
     countryData,
+    allCountryData,
     deviceData,
     sourceData,
+    sources,
     hourlyData,
     dailyData,
+    allDailyData,
+    monthlyData,
     recentUsers: data.slice(0, 12),
     hasEnrichment: data.some(u => u.country || u.device),
+    // Referral
+    totalReferred,
+    referralRate,
+    topReferrers,
+    hasReferralData,
   }
 }
 
 export function useWaitlistData() {
-  const [data, setData]           = useState([])
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState(null)
+  const [data, setData]               = useState([])
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [hasFetched, setHasFetched]   = useState(false)
 

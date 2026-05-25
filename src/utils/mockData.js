@@ -16,7 +16,10 @@ const COUNTRIES = [
   { v: 'Australia',      w: 5  }, { v: 'France',        w: 4  },
   { v: 'Singapore',      w: 4  }, { v: 'Japan',         w: 3  },
   { v: 'Netherlands',    w: 3  }, { v: 'Mexico',        w: 3  },
-  { v: 'South Korea',    w: 3  }, { v: 'Other',         w: 4  },
+  { v: 'South Korea',    w: 3  }, { v: 'Spain',         w: 2  },
+  { v: 'Italy',          w: 2  }, { v: 'Sweden',        w: 1  },
+  { v: 'Nigeria',        w: 1  }, { v: 'South Africa',  w: 1  },
+  { v: 'Other',          w: 2  },
 ]
 
 const DEVICES = [
@@ -35,36 +38,41 @@ const SOURCES = [
   { v: 'Newsletter',        w: 2  },
 ]
 
-const NAMES    = ['alex','sarah','mike','emma','john','lisa','david','anna','chris','jessica','james','olivia','ethan','sophia','noah','ava','liam','mia','lucas','grace']
-const DOMAINS  = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','proton.me','me.com']
+const NAMES   = ['alex','sarah','mike','emma','john','lisa','david','anna','chris','jessica','james','olivia','ethan','sophia','noah','ava','liam','mia','lucas','grace']
+const DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','proton.me','me.com']
 
 let _uidCounter = 1
 
-function mockUser(daysAgo) {
-  const now    = Date.now()
-  const jitter = Math.random() * daysAgo * 24 * 60 * 60 * 1000
-  const date   = new Date(now - jitter)
-  const name   = NAMES[Math.floor(Math.random() * NAMES.length)]
-  const num    = Math.floor(Math.random() * 9999)
-  const domain = DOMAINS[Math.floor(Math.random() * DOMAINS.length)]
-
-  return {
-    id:        `mock-${_uidCounter++}`,
-    email:     `${name}${num}@${domain}`,
-    createdAt: date.toISOString(),
-    source:    pick(SOURCES),
-    country:   pick(COUNTRIES),
-    device:    pick(DEVICES),
-    status:    '1',
-  }
+function genRefCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let c = 'LUNA'
+  for (let i = 0; i < 5; i++) c += chars[Math.floor(Math.random() * chars.length)]
+  return c
 }
 
 export function generateMockData(count = 200) {
+  const codes = Array.from({ length: count }, genRefCode)
   const users = []
   for (let i = 0; i < count; i++) {
-    // Exponentially more recent — gives realistic growth curve
-    const daysAgo = Math.pow(Math.random(), 1.5) * 30
-    users.push(mockUser(daysAgo))
+    const daysAgo = Math.pow(Math.random(), 1.5) * 120
+    const now     = Date.now()
+    const date    = new Date(now - Math.random() * daysAgo * 86_400_000)
+    const name    = NAMES[Math.floor(Math.random() * NAMES.length)]
+    const domain  = DOMAINS[Math.floor(Math.random() * DOMAINS.length)]
+    const num     = Math.floor(Math.random() * 9999)
+    users.push({
+      id:           `mock-${_uidCounter++}`,
+      email:        `${name}${num}@${domain}`,
+      createdAt:    date.toISOString(),
+      source:       pick(SOURCES),
+      country:      pick(COUNTRIES),
+      device:       pick(DEVICES),
+      status:       '1',
+      referralCode: codes[i],
+      referredBy:   i > 5 && Math.random() < 0.35
+        ? codes[Math.floor(Math.random() * Math.max(1, i))]
+        : null,
+    })
   }
   return users.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 }
@@ -72,7 +80,22 @@ export function generateMockData(count = 200) {
 export function generateNewUsers(count = 1) {
   const users = []
   for (let i = 0; i < count; i++) {
-    users.push(mockUser(0.02)) // within the last ~30 min
+    const now    = Date.now()
+    const date   = new Date(now - Math.random() * 0.02 * 86_400_000)
+    const name   = NAMES[Math.floor(Math.random() * NAMES.length)]
+    const domain = DOMAINS[Math.floor(Math.random() * DOMAINS.length)]
+    const num    = Math.floor(Math.random() * 9999)
+    users.push({
+      id:           `mock-${_uidCounter++}`,
+      email:        `${name}${num}@${domain}`,
+      createdAt:    date.toISOString(),
+      source:       pick(SOURCES),
+      country:      pick(COUNTRIES),
+      device:       pick(DEVICES),
+      status:       '1',
+      referralCode: genRefCode(),
+      referredBy:   null,
+    })
   }
   return users
 }

@@ -25,13 +25,15 @@ export async function fetchWaitlistData() {
  */
 export function transformApiData(rawItems) {
   return rawItems.map((item, i) => ({
-    id:        item.id          || `item-${i}`,
-    email:     item.original_email || item.email || '',
-    createdAt: item.created_at  || item.createdAt || new Date().toISOString(),
-    source:    item.source      || null,
-    country:   item.country     || null,
-    device:    item.device      || null,
-    status:    item.status      || '1',
+    id:           item.id             || `item-${i}`,
+    email:        item.original_email || item.email || '',
+    createdAt:    item.created_at     || item.createdAt || new Date().toISOString(),
+    source:       item.source         || null,
+    country:      item.country        || null,
+    device:       item.device         || null,
+    status:       item.status         || '1',
+    referralCode: item.referral_code  || item.referralCode || null,
+    referredBy:   item.referred_by    || item.referredBy   || null,
   }))
 }
 

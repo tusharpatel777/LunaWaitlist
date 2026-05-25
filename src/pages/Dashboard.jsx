@@ -3,6 +3,7 @@ import {
   RiGroupLine, RiCalendarCheckLine,
   RiCalendarLine, RiAlertLine,
   RiRefreshLine, RiDownloadLine,
+  RiArrowUpLine, RiShareLine, RiUserStarLine,
 } from 'react-icons/ri'
 import { useWaitlist } from '../context/WaitlistContext'
 import StatCard from '../components/StatCard'
@@ -14,6 +15,49 @@ import CountryBarChart from '../charts/CountryBarChart'
 import DevicePieChart from '../charts/DevicePieChart'
 import { formatDate } from '../utils/formatters'
 
+// Mini referral card shown when referral data exists
+function ReferralMini({ total, rate, topReferrers }) {
+  if (!total) return null
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.25 }}
+      className="glass rounded-2xl border p-5"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
+            <RiShareLine size={14} className="text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="text-white font-semibold text-sm">Referral Activity</h3>
+            <p className="text-white/35 text-xs mt-0.5">
+              {total.toLocaleString()} users referred · {rate}% rate
+            </p>
+          </div>
+        </div>
+        <span className="text-emerald-400 text-xs font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          {rate}%
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {topReferrers.slice(0, 5).map((r, i) => (
+          <div key={r.code} className="flex items-center gap-2.5">
+            <span className="text-white/20 text-xs w-4 text-center">#{i + 1}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-white/60 text-xs truncate">{r.email}</p>
+              <p className="font-mono text-[10px] text-white/25">{r.code}</p>
+            </div>
+            <span className="text-indigo-400 text-xs font-bold">{r.count} refs</span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
 export default function Dashboard() {
   const { data, loading, error, stats, hasFetched, lastUpdated, refresh, isMock } = useWaitlist()
 
@@ -21,7 +65,6 @@ export default function Dashboard() {
   if (!hasFetched) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6">
-        {/* Glowing orb */}
         <div className="relative">
           <div className="w-28 h-28 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 opacity-20 blur-2xl absolute inset-0 scale-150" />
           <div className="relative w-28 h-28 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-violet-600/20 border border-indigo-500/30 flex items-center justify-center">
@@ -90,10 +133,7 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Export — emails baked into the already-fetched data */}
           <ExportButton data={data} filename="waitlist-full.csv" />
-
-          {/* Manual refresh */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
@@ -122,7 +162,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* Stat cards */}
+      {/* Stat cards — always 4 cols on xl */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           title="Total Signups"
@@ -144,6 +184,16 @@ export default function Dashboard() {
           icon={RiCalendarLine}
           variant="purple"
           delay={0.1}
+          trend={stats.growthRate}
+        />
+        <StatCard
+          title="Growth Rate"
+          value={Math.abs(stats.growthRate)}
+          icon={RiArrowUpLine}
+          variant={stats.growthRate >= 0 ? 'emerald' : 'amber'}
+          delay={0.15}
+          suffix="%"
+          trendLabel="week-over-week"
         />
       </div>
 
@@ -159,8 +209,36 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Country chart — only when data exists */}
-      {stats.countryData.length > 0 && <CountryBarChart data={stats.countryData} />}
+      {/* Country chart */}
+      {stats.countryData.length > 0 && (
+        <CountryBarChart data={stats.countryData} allData={stats.allCountryData} />
+      )}
+
+      {/* Referral mini-section */}
+      {stats.hasReferralData && stats.topReferrers.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <StatCard
+            title="Referred Users"
+            value={stats.totalReferred}
+            icon={RiShareLine}
+            variant="emerald"
+            delay={0}
+          />
+          <StatCard
+            title="Referral Rate"
+            value={stats.referralRate}
+            icon={RiUserStarLine}
+            variant="amber"
+            delay={0.05}
+            suffix="%"
+          />
+          <ReferralMini
+            total={stats.totalReferred}
+            rate={stats.referralRate}
+            topReferrers={stats.topReferrers}
+          />
+        </div>
+      )}
     </div>
   )
 }
