@@ -1,13 +1,15 @@
 export function exportToCSV(data, filename = 'waitlist-export.csv') {
-  const hasCountry = data.some(u => u.country)
-  const hasDevice  = data.some(u => u.device)
-  const hasSource  = data.some(u => u.source)
+  const hasCountry      = data.some(u => u.country)
+  const hasDevice       = data.some(u => u.device)
+  const hasSource       = data.some(u => u.source)
+  const hasReferralCode = data.some(u => u.referralCode)
 
   const headers = [
     '#', 'Email',
     ...(hasCountry ? ['Country'] : []),
     ...(hasDevice  ? ['Device']  : []),
     ...(hasSource  ? ['Source']  : []),
+    ...(hasReferralCode ? ['Referral Code'] : []),
     'Status', 'Joined At',
   ]
 
@@ -17,6 +19,7 @@ export function exportToCSV(data, filename = 'waitlist-export.csv') {
     ...(hasCountry ? [u.country || ''] : []),
     ...(hasDevice  ? [u.device  || ''] : []),
     ...(hasSource  ? [u.source  || ''] : []),
+    ...(hasReferralCode ? [u.referralCode || ''] : []),
     u.status === '1' ? 'Active' : 'Inactive',
     new Date(u.createdAt).toLocaleString(),
   ])
