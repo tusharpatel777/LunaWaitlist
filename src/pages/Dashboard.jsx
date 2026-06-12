@@ -9,10 +9,12 @@ import { useWaitlist } from '../context/WaitlistContext'
 import StatCard from '../components/StatCard'
 import ExportButton from '../components/ExportButton'
 import LiveIndicator from '../components/LiveIndicator'
+import DateRangeFilter from '../components/DateRangeFilter'
 import { StatCardSkeleton, ChartSkeleton } from '../components/SkeletonLoader'
 import RealTimeLineChart from '../charts/RealTimeLineChart'
 import CountryBarChart from '../charts/CountryBarChart'
 import DevicePieChart from '../charts/DevicePieChart'
+import ReferralDailyChart from '../charts/ReferralDailyChart'
 import { formatDate } from '../utils/formatters'
 
 // Mini referral card shown when referral data exists
@@ -147,6 +149,9 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Global date filter */}
+      <DateRangeFilter />
+
       {/* Error banner */}
       <AnimatePresence>
         {error && (
@@ -238,6 +243,11 @@ export default function Dashboard() {
             topReferrers={stats.topReferrers}
           />
         </div>
+      )}
+
+      {/* Referral day-by-day chart */}
+      {stats.hasReferralData && (
+        <ReferralDailyChart data={stats.referralDailyData} />
       )}
     </div>
   )

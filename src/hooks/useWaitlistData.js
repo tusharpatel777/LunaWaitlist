@@ -119,6 +119,35 @@ function computeStats(data) {
       users,
     }))
 
+  // Referral daily data — day-by-day referred signups, gap-filled across the data span
+  let referralDailyData = []
+  if (data.length) {
+    const times = data.map(u => new Date(u.createdAt).getTime())
+    const end   = new Date(Math.max(...times)); end.setHours(0, 0, 0, 0)
+    let   start = new Date(Math.min(...times)); start.setHours(0, 0, 0, 0)
+    // Cap the span so the chart stays readable for very old datasets
+    if (end - start > 180 * 86_400_000) start = new Date(end.getTime() - 180 * 86_400_000)
+    const refDayMap = {}
+    for (let t = start.getTime(); t <= end.getTime(); t += 86_400_000) {
+      const d   = new Date(t)
+      const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      refDayMap[iso] = 0
+    }
+    data.forEach(u => {
+      if (!u.referredBy) return
+      const d   = new Date(u.createdAt)
+      const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      if (iso in refDayMap) refDayMap[iso]++
+    })
+    referralDailyData = Object.entries(refDayMap)
+      .sort(([a],[b]) => a.localeCompare(b))
+      .map(([isoDate, referrals]) => ({
+        isoDate,
+        date: new Date(isoDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        referrals,
+      }))
+  }
+
   // Referral stats
   const refMap = {}
   data.forEach(u => {
@@ -157,6 +186,7 @@ function computeStats(data) {
     referralRate,
     topReferrers,
     hasReferralData,
+    referralDailyData,
   }
 }
 
@@ -166,6 +196,8 @@ export function useWaitlistData() {
   const [error, setError]             = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [hasFetched, setHasFetched]   = useState(false)
+  // Global date filter — applies to every view (preset key + ISO from/to dates)
+  const [dateFilter, setDateFilter]   = useState({ preset: 'all', from: '', to: '' })
 
   const prevCountRef = useRef(0)
   const isMock       = !import.meta.env.VITE_API_URL
@@ -203,7 +235,23 @@ export function useWaitlistData() {
     }
   }, [isMock, hasFetched])
 
-  const stats = useMemo(() => computeStats(data), [data])
+  const filteredData = useMemo(() => {
+    if (!dateFilter.from && !dateFilter.to) return data
+    const fromT = dateFilter.from ? new Date(dateFilter.from + 'T00:00:00').getTime()     : -Infinity
+    const toT   = dateFilter.to   ? new Date(dateFilter.to   + 'T23:59:59.999').getTime() :  Infinity
+    return data.filter(u => {
+      const t = new Date(u.createdAt).getTime()
+      return t >= fromT && t <= toT
+    })
+  }, [data, dateFilter])
 
-  return { data, loading, error, stats, lastUpdated, hasFetched, refresh: fetchData, isMock }
+  const stats = useMemo(() => computeStats(filteredData), [filteredData])
+
+  return {
+    data: filteredData,
+    totalCount: data.length,
+    dateFilter,
+    setDateFilter,
+    loading, error, stats, lastUpdated, hasFetched, refresh: fetchData, isMock,
+  }
 }

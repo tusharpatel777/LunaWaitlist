@@ -3,16 +3,21 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   RiBarChartLine, RiGroupLine, RiCalendarLine,
   RiCloseLine, RiShareLine, RiUserStarLine,
-  RiTimeLine, RiCalendarCheckLine,
+  RiTimeLine, RiCalendarCheckLine, RiDownloadLine,
 } from 'react-icons/ri'
+import toast from 'react-hot-toast'
 import { useWaitlist } from '../context/WaitlistContext'
 import StatCard from '../components/StatCard'
 import CountryBarChart from '../charts/CountryBarChart'
 import DevicePieChart from '../charts/DevicePieChart'
 import DailySignupsChart from '../charts/DailySignupsChart'
+import ReferralDailyChart from '../charts/ReferralDailyChart'
 import UserTable from '../components/UserTable'
+import ExportButton from '../components/ExportButton'
+import DateRangeFilter from '../components/DateRangeFilter'
 import { StatCardSkeleton, ChartSkeleton } from '../components/SkeletonLoader'
 import { formatNumber } from '../utils/formatters'
+import { exportRowsToCSV } from '../utils/exportCSV'
 
 // ─── Range configuration ────────────────────────────────────────────────────
 const RANGES = [
@@ -222,6 +227,29 @@ function DayPanel({ date, users, onClose }) {
 // ─── Period breakdown table ─────────────────────────────────────────────────
 function PeriodTable({ data = [], periodLabel = 'Date', onSelectDay, selectedDay, enableDrilldown }) {
   const total = data.reduce((s, d) => s + d.users, 0)
+
+  function handleExport() {
+    if (!data.length) {
+      toast.error('No data to export')
+      return
+    }
+    const rows = data.map((day, i) => {
+      const prev   = data[i + 1]?.users ?? null
+      const change = prev !== null && prev > 0
+        ? ((day.users - prev) / prev * 100).toFixed(1)
+        : ''
+      return [
+        data.length - i,
+        day.date,
+        day.users,
+        total > 0 ? (day.users / total * 100).toFixed(1) : '0.0',
+        change,
+      ]
+    })
+    exportRowsToCSV(['#', periodLabel, 'Signups', 'Share %', 'vs Prev %'], rows, 'period-breakdown.csv')
+    toast.success(`Exported ${rows.length.toLocaleString()} rows`)
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -236,9 +264,18 @@ function PeriodTable({ data = [], periodLabel = 'Date', onSelectDay, selectedDay
             <p className="text-white/35 text-xs mt-0.5">Click a row to see that period's signups</p>
           )}
         </div>
-        <span className="text-white/30 text-xs tabular-nums">
-          {total.toLocaleString()} total
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-white/30 text-xs tabular-nums">
+            {total.toLocaleString()} total
+          </span>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-xs font-medium transition-all"
+          >
+            <RiDownloadLine size={13} />
+            Export
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto max-h-80 overflow-y-auto">
         <table className="w-full text-sm">
@@ -343,7 +380,11 @@ export default function Analytics() {
           <h1 className="text-xl font-bold text-white">Analytics</h1>
           <p className="text-white/35 text-xs mt-1">Detailed growth & distribution insights</p>
         </div>
+        <ExportButton data={data} filename="waitlist-analytics.csv" />
       </div>
+
+      {/* ── Global date filter ── */}
+      <DateRangeFilter />
 
       {/* ── KPI row ── */}
       <div className="grid grid-cols-3 gap-4">
@@ -442,6 +483,11 @@ export default function Analytics() {
             referralRate={stats.referralRate}
           />
         </div>
+      )}
+
+      {/* ── Referral day-by-day chart ── */}
+      {stats.hasReferralData && (
+        <ReferralDailyChart data={stats.referralDailyData} />
       )}
     </div>
   )

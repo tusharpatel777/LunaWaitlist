@@ -5,6 +5,7 @@ import { useWaitlist } from '../context/WaitlistContext'
 import UserTable from '../components/UserTable'
 import SearchFilter from '../components/SearchFilter'
 import ExportButton from '../components/ExportButton'
+import DateRangeFilter from '../components/DateRangeFilter'
 import { TableSkeleton } from '../components/SkeletonLoader'
 
 const PAGE_SIZE = 25
@@ -90,6 +91,9 @@ export default function Users() {
         </div>
         <ExportButton data={filtered} filename="waitlist-filtered.csv" />
       </div>
+
+      {/* Global date filter */}
+      <DateRangeFilter />
 
       {/* Filters */}
       <SearchFilter

@@ -1,3 +1,22 @@
+function downloadCSV(rows, filename) {
+  const csv = rows
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n')
+
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// Generic exporter for arbitrary tabular data (e.g. period breakdowns)
+export function exportRowsToCSV(headers, rows, filename = 'export.csv') {
+  downloadCSV([headers, ...rows], filename)
+}
+
 export function exportToCSV(data, filename = 'waitlist-export.csv') {
   const hasCountry      = data.some(u => u.country)
   const hasDevice       = data.some(u => u.device)
@@ -24,15 +43,5 @@ export function exportToCSV(data, filename = 'waitlist-export.csv') {
     new Date(u.createdAt).toLocaleString(),
   ])
 
-  const csv = [headers, ...rows]
-    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    .join('\r\n')
-
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadCSV([headers, ...rows], filename)
 }
