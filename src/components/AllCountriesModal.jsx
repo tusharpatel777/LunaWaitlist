@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { RiCloseLine, RiSearchLine, RiGlobalLine } from 'react-icons/ri'
+import toast from 'react-hot-toast'
+import { RiCloseLine, RiSearchLine, RiGlobalLine, RiDownloadLine } from 'react-icons/ri'
+import { exportCountriesToCSV } from '../utils/exportCSV'
 
 const FLAGS = {
   'India': '🇮🇳', 'United States': '🇺🇸', 'United Kingdom': '🇬🇧',
@@ -29,6 +31,15 @@ export default function AllCountriesModal({ data = [], onClose }) {
   const filtered = search
     ? data.filter(d => d.country.toLowerCase().includes(search.toLowerCase()))
     : data
+
+  function handleExport() {
+    if (!filtered.length) {
+      toast.error('No country data to export')
+      return
+    }
+    exportCountriesToCSV(filtered, 'countries.csv')
+    toast.success(`Exported ${filtered.length} countries`)
+  }
 
   return (
     <AnimatePresence>
@@ -63,12 +74,22 @@ export default function AllCountriesModal({ data = [], onClose }) {
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-all"
-            >
-              <RiCloseLine size={18} />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleExport}
+                title="Export country data as CSV"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-xs font-medium transition-all"
+              >
+                <RiDownloadLine size={13} />
+                Export
+              </button>
+              <button
+                onClick={onClose}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-all"
+              >
+                <RiCloseLine size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Search */}

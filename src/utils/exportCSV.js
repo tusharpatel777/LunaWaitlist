@@ -17,6 +17,18 @@ export function exportRowsToCSV(headers, rows, filename = 'export.csv') {
   downloadCSV([headers, ...rows], filename)
 }
 
+// Country breakdown exporter — rank, country, users, share %
+export function exportCountriesToCSV(countryData, filename = 'countries.csv') {
+  const total = countryData.reduce((s, d) => s + d.count, 0)
+  const rows  = countryData.map((d, i) => [
+    i + 1,
+    d.country,
+    d.count,
+    total > 0 ? (d.count / total * 100).toFixed(1) : '0.0',
+  ])
+  downloadCSV([['Rank', 'Country', 'Users', 'Share %'], ...rows], filename)
+}
+
 export function exportToCSV(data, filename = 'waitlist-export.csv') {
   const hasCountry      = data.some(u => u.country)
   const hasDevice       = data.some(u => u.device)

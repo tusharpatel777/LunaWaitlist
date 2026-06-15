@@ -1,13 +1,35 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
-import { RiGlobalLine, RiArrowRightLine } from 'react-icons/ri'
+import { RiGlobalLine, RiArrowRightLine, RiDownloadLine } from 'react-icons/ri'
 import AllCountriesModal from '../components/AllCountriesModal'
+import { useWaitlist } from '../context/WaitlistContext'
+import { exportCountriesToCSV } from '../utils/exportCSV'
 
 const COLORS = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ec4899','#14b8a6','#a78bfa']
+
+const DAY_MS = 86_400_000
+
+// Local date sub-filter presets for the country breakdown
+const RANGES = [
+  { key: 'all', label: 'All',  days: null },
+  { key: '7d',  label: '7d',   days: 7 },
+  { key: '30d', label: '30d',  days: 30 },
+  { key: '90d', label: '90d',  days: 90 },
+]
+
+// Aggregate country counts from a list of user rows, sorted desc
+function aggregateCountries(users) {
+  const map = {}
+  users.forEach(u => { if (u.country) map[u.country] = (map[u.country] || 0) + 1 })
+  return Object.entries(map)
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count)
+}
 
 const FLAGS = {
   'India': '🇮🇳', 'United States': '🇺🇸', 'United Kingdom': '🇬🇧',
@@ -30,9 +52,31 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function CountryBarChart({ data = [], allData = [] }) {
+  const { data: users } = useWaitlist()
   const [showModal, setShowModal] = useState(false)
-  const top8 = data.slice(0, 8)
-  const extra = allData.length - top8.length
+  const [range, setRange]         = useState('all')
+
+  // When a local range is active, recompute the breakdown from the raw user
+  // rows; otherwise fall back to the pre-computed allData passed in.
+  const agg = useMemo(() => {
+    if (range === 'all') return allData
+    const days   = RANGES.find(r => r.key === range)?.days
+    const cutoff = Date.now() - days * DAY_MS
+    return aggregateCountries(users.filter(u => new Date(u.createdAt).getTime() >= cutoff))
+  }, [range, users, allData])
+
+  const top8  = agg.slice(0, 8)
+  const extra = agg.length - top8.length
+
+  function handleExport() {
+    if (!agg.length) {
+      toast.error('No country data to export')
+      return
+    }
+    const suffix = range === 'all' ? 'all-time' : range
+    exportCountriesToCSV(agg, `countries-${suffix}.csv`)
+    toast.success(`Exported ${agg.length} countries`)
+  }
 
   return (
     <>
@@ -53,18 +97,47 @@ export default function CountryBarChart({ data = [], allData = [] }) {
             </div>
           </div>
 
-          {extra > 0 && (
+          <div className="flex items-center gap-2">
+            {/* Local date sub-filter */}
+            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.07]">
+              {RANGES.map(r => (
+                <button
+                  key={r.key}
+                  onClick={() => setRange(r.key)}
+                  className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                    range === r.key
+                      ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30'
+                      : 'text-white/40 hover:text-white'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Export country data */}
             <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition-colors group"
+              onClick={handleExport}
+              title="Export country data as CSV"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-[11px] font-medium transition-all"
             >
-              View All ({allData.length})
-              <RiArrowRightLine
-                size={12}
-                className="transition-transform group-hover:translate-x-0.5"
-              />
+              <RiDownloadLine size={12} />
+              CSV
             </button>
-          )}
+
+            {extra > 0 && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition-colors group"
+              >
+                View All ({agg.length})
+                <RiArrowRightLine
+                  size={12}
+                  className="transition-transform group-hover:translate-x-0.5"
+                />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="h-52">
@@ -106,7 +179,7 @@ export default function CountryBarChart({ data = [], allData = [] }) {
       </motion.div>
 
       {showModal && (
-        <AllCountriesModal data={allData} onClose={() => setShowModal(false)} />
+        <AllCountriesModal data={agg} onClose={() => setShowModal(false)} />
       )}
     </>
   )
