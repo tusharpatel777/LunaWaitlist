@@ -361,7 +361,7 @@ export default function Analytics() {
   if (loading) {
     return (
       <div className="space-y-5">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => <StatCardSkeleton key={i} />)}
         </div>
         <ChartSkeleton height="h-80" />
@@ -387,19 +387,19 @@ export default function Analytics() {
       <DateRangeFilter />
 
       {/* ── KPI row ── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard title="Total Signups"   value={stats.totalUsers} icon={RiGroupLine}        variant="indigo"  delay={0}    />
         <StatCard title="This Month"      value={stats.monthUsers} icon={RiCalendarLine}      variant="cyan"    delay={0.05} />
         <StatCard title="This Week"       value={stats.weekUsers}  icon={RiCalendarCheckLine} variant="purple"  delay={0.1}  trend={stats.growthRate} />
       </div>
 
-      {/* ── Time range filter — above the chart ── */}
-      <div className="flex items-center gap-1 p-1 glass rounded-xl border w-fit">
+      {/* ── Time range filter — above the chart (scrolls on mobile) ── */}
+      <div className="flex items-center gap-1 p-1 glass rounded-xl border max-w-full overflow-x-auto no-scrollbar w-full sm:w-fit">
         {RANGES.map(r => (
           <button
             key={r.key}
             onClick={() => handleRangeChange(r.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               range === r.key
                 ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30'
                 : 'text-white/45 hover:text-white'
@@ -448,16 +448,21 @@ export default function Analytics() {
         enableDrilldown={rc.enableDrilldown}
       />
 
-      {/* ── Distribution row ── */}
-      {(stats.countryData.length > 0 || stats.deviceData.length > 0 || stats.sourceData.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {stats.countryData.length > 0 && (
-            <CountryBarChart data={stats.countryData} allData={stats.allCountryData} />
-          )}
-          {stats.deviceData.length  > 0 && <DevicePieChart data={stats.deviceData} />}
-          {stats.sourceData.length  > 0 && <SourceList     data={stats.sourceData} />}
-        </div>
-      )}
+      {/* ── Distribution row — column count adapts to how many sections render ── */}
+      {(() => {
+        const sections = [
+          stats.countryData.length > 0 && (
+            <CountryBarChart key="country" data={stats.countryData} allData={stats.allCountryData} />
+          ),
+          stats.deviceData.length > 0 && <DevicePieChart key="device" data={stats.deviceData} />,
+          stats.sourceData.length > 0 && <SourceList     key="source" data={stats.sourceData} />,
+        ].filter(Boolean)
+        if (!sections.length) return null
+        const cols = sections.length === 1
+          ? 'lg:grid-cols-1'
+          : sections.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'
+        return <div className={`grid grid-cols-1 ${cols} gap-4`}>{sections}</div>
+      })()}
 
       {/* ── Referral section ── */}
       {stats.hasReferralData && (

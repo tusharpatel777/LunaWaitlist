@@ -22,7 +22,7 @@ export default function StatCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      className="relative overflow-hidden rounded-2xl p-5 glass border hover:border-white/[0.12] transition-all duration-300 group cursor-default"
+      className="relative overflow-hidden rounded-2xl p-4 sm:p-5 glass border hover:border-white/[0.12] transition-all duration-300 group cursor-default"
     >
       {/* Background glow orb */}
       <div
@@ -31,15 +31,15 @@ export default function StatCard({
       />
 
       <div className="relative z-10 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-white/50 text-sm font-medium">{title}</span>
-          <div className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 ${v.ring}`}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-white/50 text-xs sm:text-sm font-medium truncate">{title}</span>
+          <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center flex-shrink-0 ${v.ring}`}>
             <Icon size={17} className={v.text} />
           </div>
         </div>
 
         <div className="flex items-end gap-1">
-          <span className="text-3xl font-extrabold text-white tracking-tight">
+          <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             {prefix}<AnimatedCounter value={value} decimals={decimals} />{suffix}
           </span>
         </div>

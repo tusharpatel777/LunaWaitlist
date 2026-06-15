@@ -51,7 +51,7 @@ export default function DateRangeFilter() {
       <RiCalendarLine size={14} className="text-white/30 flex-shrink-0" />
 
       {/* Presets */}
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         {PRESETS.map(p => (
           <button
             key={p.key}

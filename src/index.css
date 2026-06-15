@@ -79,6 +79,10 @@
   }
 }
 
+/* Hide scrollbar but keep scrollability (e.g. mobile pill rows) */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Recharts overrides */
 .recharts-tooltip-wrapper { outline: none !important; }
 .recharts-default-tooltip {

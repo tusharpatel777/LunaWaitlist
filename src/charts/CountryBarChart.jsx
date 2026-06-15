@@ -86,18 +86,18 @@ export default function CountryBarChart({ data = [], allData = [] }) {
         transition={{ delay: 0.2 }}
         className="glass rounded-2xl border p-5"
       >
-        <div className="mb-4 flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 rounded-md bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center flex-shrink-0">
               <RiGlobalLine size={12} className="text-indigo-400" />
             </div>
-            <div>
-              <h3 className="text-white font-semibold text-sm">Top Countries</h3>
-              <p className="text-white/35 text-xs mt-0.5">User distribution by country</p>
+            <div className="min-w-0">
+              <h3 className="text-white font-semibold text-sm whitespace-nowrap">Top Countries</h3>
+              <p className="text-white/35 text-xs mt-0.5 whitespace-nowrap">User distribution by country</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Local date sub-filter */}
             <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.07]">
               {RANGES.map(r => (
